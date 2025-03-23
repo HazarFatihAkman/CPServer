@@ -1,0 +1,29 @@
+#include "../include/utilities.h"
+
+allocator_t default_allocator = { default_allocate, default_deallocate };
+
+void *default_allocate(size_t size) {
+    void *ptr = NULL;
+    size_t attemps = 0;
+    while (ptr == NULL && attemps < MAX_ATTEMPS) {
+        ptr = malloc(size);
+
+        if (!ptr) {
+            perror("Memory allocation failed\n");
+            ++attemps;
+        }
+    }
+
+    if (ptr == NULL) {
+        fprintf(stderr, "Memory allocation failed after %zu attemps\n", attemps);
+        exit(EXIT_FAILURE);
+    }
+
+    return ptr;
+}
+
+void default_deallocate(void *ptr) {
+    if (ptr) {
+        free(ptr);
+    }
+}
