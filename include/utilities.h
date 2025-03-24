@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define for_loop(i, n) for(int i = 0; i < (n); i++)
-#define MAX_ATTEMPS 10
+#define MAX_ATTEMPTS 10
 
 typedef struct allocator {
     void*(*allocate)(size_t size);

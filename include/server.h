@@ -23,18 +23,11 @@ typedef enum SERVER_TYPE {
 typedef struct server_client server_client_t;
 
 typedef struct server_config {
-    int max_client;
-    char *server_name;
-    char ip;
+    int max_connected_clients;
+    char *name;
 } server_config_t;
 
 typedef struct server {
-    // server lifetime
-    allocator_t area; //Config Id...
-
-    // server loop lifetime
-    allocator_t scratch; // TEMP
-
     // port to listen. if 0, grab any available port.
     int port;
 
@@ -49,8 +42,6 @@ typedef struct server {
 
     enum SERVER_TYPE type;
 
-    int max_connected_clients;
-
     int pid;
 
     bool ready;
@@ -60,6 +51,8 @@ typedef struct server {
     #else
         // TODO : LINUX & MACOS
     #endif
+
+    server_config_t *config;
 } server_t;
 
 typedef struct packet {    
@@ -73,7 +66,7 @@ typedef struct packet {
 extern server_t **active_servers;
 extern int server_count;
 
-void server(enum SERVER_TYPE, int);
+void server(char*, enum SERVER_TYPE, int, void *(*)(char*));
 void client(int);
 
 packet_t *create_data_pack(const char*);

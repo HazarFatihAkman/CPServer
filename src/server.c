@@ -1,5 +1,7 @@
 #include "../include/server.h"
 
+void handle_recv(server_t *, struct sockaddr_in *, void *(*)(char*));
+
 server_t **active_servers = NULL;
 int server_count = 0;
 
@@ -42,8 +44,8 @@ int init_network() {
         WSADATA wsaDATA;
         int result;
         int attempts;
-        while ((result = WSAStartup(MAKEWORD(2, 2), & wsaDATA)) != 0 && attempts < MAX_ATTEMPS) {
-            fprintf(stderr, "WSAStartup failed with error %d. Retrying... (%zu/%zu)\n", result, attempts + 1, MAX_ATTEMPS);
+        while ((result = WSAStartup(MAKEWORD(2, 2), & wsaDATA)) != 0 && attempts < MAX_ATTEMPTS) {
+            fprintf(stderr, "WSAStartup failed with error %d. Retrying... (%zu/%zu)\n", result, attempts + 1, MAX_ATTEMPTS);
             ++attempts;
         }
 
@@ -61,7 +63,7 @@ int init_network() {
     #endif
 }
 
-void server(enum SERVER_TYPE type, int max_connected_clients) {
+void server(char *name, enum SERVER_TYPE type, int max_connected_clients, void *(*handler)(char*)) {
     if (init_network() != 1) {
         exit(EXIT_FAILURE);
     }
@@ -69,20 +71,27 @@ void server(enum SERVER_TYPE type, int max_connected_clients) {
     struct sockaddr_in server_addr;
     server_t *server = (server_t*)default_allocator.allocate(sizeof(server_t));
 
+    server->config = (server_config_t*)default_allocator.allocate(sizeof(server_config_t));
+    server->config->max_connected_clients = max_connected_clients;
+    server->config->name = name;
+
     server->type = type;
     server->port = 0;
-    server->max_connected_clients = max_connected_clients;
     server->ready = false;
 
     #if _WIN32
         server->fd = (SOCKET)default_allocator.allocate(sizeof(SOCKET));
         int protocol = (server->type == 0) ? IPPROTO_TCP : IPPROTO_UDP;
-        while ((server->fd = socket(AF_INET, (server->type == 0) ? SOCK_STREAM : SOCK_DGRAM, protocol)) == INVALID_SOCKET && attempts < MAX_ATTEMPS) {
+        while ((server->fd = socket(AF_INET, (server->type == 0) ? SOCK_STREAM : SOCK_DGRAM, protocol)) == INVALID_SOCKET && attempts < MAX_ATTEMPTS) {
             ++attempts;
             int error_code = WSAGetLastError();
-            fprintf(stderr, "Socket creation failed with error code %d. Retrying... (%d/%d)\n", error_code, attempts, MAX_ATTEMPS);
-            Sleep(100);
-            if (attempts == MAX_ATTEMPS - 1) {
+            fprintf(stderr, "Socket creation failed with error code %d. Retrying... (%d/%d)\n", error_code, attempts, MAX_ATTEMPTS);
+            #if _WIN32
+                Sleep(100);
+            #elif __linux__ && __APPLE__
+                // TODO : Linux && MACOS
+            #endif
+            if (attempts == MAX_ATTEMPTS - 1) {
                 break;
             }
         }
@@ -98,11 +107,15 @@ void server(enum SERVER_TYPE type, int max_connected_clients) {
     server_addr.sin_addr.s_addr = INADDR_ANY;  // Bind to any available interface
     server_addr.sin_port = htons(0);  // Let the OS choose the port
 
-    while (bind(server->fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0 && attempts < MAX_ATTEMPS) {
+    while (bind(server->fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0 && attempts < MAX_ATTEMPTS) {
         ++attempts;
-        fprintf(stderr, "Bind failed. Retrying... (%zu/%zu)\n", attempts, MAX_ATTEMPS);
-        Sleep(100);
-        if (attempts == MAX_ATTEMPS - 1) {
+        fprintf(stderr, "Bind failed. Retrying... (%zu/%zu)\n", attempts, MAX_ATTEMPTS);
+        #if _WIN32
+            Sleep(100);
+        #elif __linux__ && __APPLE__
+            // TODO : Linux && MACOS
+        #endif
+        if (attempts == MAX_ATTEMPTS - 1) {
             break;
         }
     }
@@ -118,11 +131,15 @@ void server(enum SERVER_TYPE type, int max_connected_clients) {
 
     attempts = 0;
     if (server->port == 0) {
-        while (getsockname(server->fd, (struct sockaddr*)&server_addr, &len) == -1 && attempts < MAX_ATTEMPS) {
+        while (getsockname(server->fd, (struct sockaddr*)&server_addr, &len) == -1 && attempts < MAX_ATTEMPTS) {
             ++attempts;
-            fprintf(stderr, "Getsockname failed. Retrying... (%zu/%zu)\n", attempts, MAX_ATTEMPS);
-            Sleep(100);
-            if (attempts == MAX_ATTEMPS - 1) {
+            fprintf(stderr, "Getsockname failed. Retrying... (%zu/%zu)\n", attempts, MAX_ATTEMPTS);
+            #if _WIN32
+                Sleep(100);
+            #elif __linux__ && __APPLE__
+                // TODO : Linux && MACOS
+            #endif
+            if (attempts == MAX_ATTEMPTS - 1) {
                 break;
             }
         }
@@ -133,23 +150,96 @@ void server(enum SERVER_TYPE type, int max_connected_clients) {
     if (server->type == TCP) {
          attempts = 0;
 
-         while ((listen(server->fd, server->max_connected_clients) < 0) && attempts < MAX_ATTEMPS) {
+         while ((listen(server->fd, server->config->max_connected_clients) < 0) && attempts < MAX_ATTEMPTS) {
             ++attempts;
-            fprintf(stderr, "Listen failed. Retrying... (%zu/%zu)\n", attempts, MAX_ATTEMPS);
-            Sleep(100);
-            if (attempts == MAX_ATTEMPS - 1) {
+            fprintf(stderr, "Listen failed. Retrying... (%zu/%zu)\n", attempts, MAX_ATTEMPTS);
+            #if _WIN32
+                Sleep(100);
+            #elif __linux__ && __APPLE__
+                // TODO : Linux && MACOS
+            #endif
+            if (attempts == MAX_ATTEMPTS - 1) {
                break;
             }
          }
     }
 
     server->ready = true;
-    printf("Server is ready on port %d\n", server->port);
+    fprintf(stderr, "Server is ready on port %d\n", server->port);
     push_server(server);
+    handle_recv(server, &server_addr, handler);
+}
 
-    while (1) {
-        
+void handle_recv(server_t *server, struct sockaddr_in *server_addr, void *(*handler)(char*)) {
+    char buffer[SIZE_1024];
+    struct sockaddr_in client_addr;
+    SOCKET client_socket;
+    int add_len = sizeof(client_addr);
+    int attempts = 0, byte_received;
+
+    if (server->type == TCP) {
+        // printf("TCP\n");
+        while (1) {
+            #if _WIN32
+                init_network();
+                client_socket = accept(server->fd, (struct sockaddr*)&client_addr, &add_len);
+                if (client_socket == INVALID_SOCKET) {
+                    fprintf(stderr, "Accept failed with error: %d\n", WSAGetLastError());
+                    continue;
+                }
+                else {
+                    byte_received = recv(client_socket, buffer, SIZE_1024, 0);
+                    if (byte_received == SOCKET_ERROR) {
+                        fprintf(stderr, "ERROR RECEIVING DATA %ld\n", WSAGetLastError());
+                        closesocket(client_socket);
+                        continue;
+                    }
+                    else {
+                        buffer[byte_received] = '\0';
+                        fprintf(stderr, "Recevied message from %s:%d %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), buffer);
+
+                        const char *response = "HTTP/1.1 200 OK\r\n"\
+                                               "Content-Type: application/json\r\n"\
+                                                "Content-Length: 57\r\n"\
+                                                "Connection: keep-alive\r\n"\
+                                                "\r\n"\
+                                                "{\"status\": \"success\", \"message\": \"Message received\"}";
+
+                        int byte_sent = send(client_socket, response, strlen(response), 0);
+                        if (byte_sent == SOCKET_ERROR) {
+                            fprintf(stderr, "Error sending response : %d\n", WSAGetLastError());
+                        }
+                        else {
+                            fprintf(stderr, "Response sent to client: %s\n", response);
+                        }
+                    }
+                }
+
+            #elif __linux__ || __APPLE__
+                // TODO : Linux & MACOS
+            #endif
+        }
     }
+    else if (server->type == UDP) {
+        while (1) {
+            #if _WIN32
+                byte_received = recvfrom(server->fd, buffer, SIZE_1024, 0, (struct sockaddr*)&client_addr, &add_len);
+                if (byte_received == SOCKET_ERROR) {
+                    fprintf(stderr, "ERROR RECEIVING DATA %ld\n", WSAGetLastError());
+                    continue;
+                }
+
+                buffer[byte_received] = '\0';
+
+                fprintf(stderr, "Recevied message from %s:%d %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), buffer);
+                const char *response = "Message received";
+                sendto(server->fd, response, strlen(response), 0, (struct sockaddr*)&client_addr, add_len);
+            #elif __linux__ || __APPLE__
+                // TODO : Linux & MACOS
+            #endif
+        }
+    }
+
 }
 
 void client(int port) {

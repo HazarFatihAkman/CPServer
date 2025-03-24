@@ -5,7 +5,7 @@ allocator_t default_allocator = { default_allocate, default_deallocate };
 void *default_allocate(size_t size) {
     void *ptr = NULL;
     size_t attempts = 0;
-    while (ptr == NULL && attempts < MAX_ATTEMPS) {
+    while (ptr == NULL && attempts < MAX_ATTEMPTS) {
         ptr = malloc(size);
 
         if (!ptr) {
