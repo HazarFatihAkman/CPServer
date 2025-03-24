@@ -4,18 +4,18 @@ allocator_t default_allocator = { default_allocate, default_deallocate };
 
 void *default_allocate(size_t size) {
     void *ptr = NULL;
-    size_t attemps = 0;
-    while (ptr == NULL && attemps < MAX_ATTEMPS) {
+    size_t attempts = 0;
+    while (ptr == NULL && attempts < MAX_ATTEMPS) {
         ptr = malloc(size);
 
         if (!ptr) {
             perror("Memory allocation failed\n");
-            ++attemps;
+            ++attempts;
         }
     }
 
     if (ptr == NULL) {
-        fprintf(stderr, "Memory allocation failed after %zu attemps\n", attemps);
+        fprintf(stderr, "Memory allocation failed after %zu attemps\n", attempts);
         exit(EXIT_FAILURE);
     }
 
