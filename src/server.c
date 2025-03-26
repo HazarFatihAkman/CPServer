@@ -1,6 +1,6 @@
 #include "../include/server.h"
 
-void handle_recv(server_t *, struct sockaddr_in *, void *(*)(char*));
+void handle_recv(server_t *, struct sockaddr_in *, const char*(*)(char*));
 
 server_t **active_servers = NULL;
 int server_count = 0;
@@ -63,7 +63,7 @@ int init_network() {
     #endif
 }
 
-void server(char *name, enum SERVER_TYPE type, int max_connected_clients, void *(*handler)(char*)) {
+void server(char *name, enum SERVER_TYPE type, int max_connected_clients, const char*(*handler)(char*)) {
     if (init_network() != 1) {
         exit(EXIT_FAILURE);
     }
@@ -170,7 +170,7 @@ void server(char *name, enum SERVER_TYPE type, int max_connected_clients, void *
     handle_recv(server, &server_addr, handler);
 }
 
-void handle_recv(server_t *server, struct sockaddr_in *server_addr, void *(*handler)(char*)) {
+void handle_recv(server_t *server, struct sockaddr_in *server_addr, const char*(*handler)(char*)) {
     char buffer[SIZE_1024];
     struct sockaddr_in client_addr;
     SOCKET client_socket;
@@ -178,7 +178,6 @@ void handle_recv(server_t *server, struct sockaddr_in *server_addr, void *(*hand
     int attempts = 0, byte_received;
 
     if (server->type == TCP) {
-        // printf("TCP\n");
         while (1) {
             #if _WIN32
                 init_network();
@@ -196,21 +195,14 @@ void handle_recv(server_t *server, struct sockaddr_in *server_addr, void *(*hand
                     }
                     else {
                         buffer[byte_received] = '\0';
-                        fprintf(stderr, "Recevied message from %s:%d %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), buffer);
-
-                        const char *response = "HTTP/1.1 200 OK\r\n"\
-                                               "Content-Type: application/json\r\n"\
-                                                "Content-Length: 57\r\n"\
-                                                "Connection: keep-alive\r\n"\
-                                                "\r\n"\
-                                                "{\"status\": \"success\", \"message\": \"Message received\"}";
-
+                        const char *response = handler(buffer);
                         int byte_sent = send(client_socket, response, strlen(response), 0);
                         if (byte_sent == SOCKET_ERROR) {
                             fprintf(stderr, "Error sending response : %d\n", WSAGetLastError());
                         }
-                        else {
-                            fprintf(stderr, "Response sent to client: %s\n", response);
+
+                        if (shutdown(client_socket, SD_SEND) == SOCKET_ERROR) {
+                                    printf("Shutdown failed. Error Code : %d\n", WSAGetLastError());
                         }
                     }
                 }
@@ -231,7 +223,7 @@ void handle_recv(server_t *server, struct sockaddr_in *server_addr, void *(*hand
 
                 buffer[byte_received] = '\0';
 
-                fprintf(stderr, "Recevied message from %s:%d %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), buffer);
+                fprintf(stderr, "%s\n", buffer);
                 const char *response = "Message received";
                 sendto(server->fd, response, strlen(response), 0, (struct sockaddr*)&client_addr, add_len);
             #elif __linux__ || __APPLE__

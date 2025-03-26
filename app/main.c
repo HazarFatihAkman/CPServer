@@ -1,7 +1,16 @@
 #include "../include/server.h"
 
+const char* handle_get(char* received_data) {
+    http_content_t *content = get_http_content(received_data);
+    // printf("%d\n", content->content_len);
+    // printf("%s\n", content_type_name(content->connection_type));
+    // printf("%s\n", http_request_name(content->request_type));
+    // printf("%s\n", content->content);
+    return create_response(OK, APPLICATION_JSON, "{\"status\": \"success\", \"message\": \"Message received\"}");
+}
+
 int main(void) {
-    server("Server - 1", TCP, 5, NULL);
+    server("Server - 1", TCP, 5, handle_get);
     // server("Server - 2", UDP, 10, NULL);
     // server("Server - 3", TCP, 12, NULL);
 

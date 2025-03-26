@@ -1,14 +1,12 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "utilities.h"
+#include "response.h"
 #include <stdbool.h>
-
-#define SIZE_256 256
-#define SIZE_1024 1024
 
 #if _WIN32
     #include <WinSock2.h>
+    #pragma comment(lib, "ws2_32.lib")
 #elif __linux__ || __APPLE__
     //TODO : Linux & MACOS
 #else
@@ -66,7 +64,7 @@ typedef struct packet {
 extern server_t **active_servers;
 extern int server_count;
 
-void server(char*, enum SERVER_TYPE, int, void *(*)(char*));
+void server(char*, enum SERVER_TYPE, int, const char*(*)(char*));
 void client(int);
 
 packet_t *create_data_pack(const char*);
