@@ -2,7 +2,6 @@
 #define SERVER_H
 
 #include "response.h"
-#include <stdbool.h>
 
 #if _WIN32
     #include <WinSock2.h>
@@ -64,7 +63,7 @@ typedef struct packet {
 extern server_t **active_servers;
 extern int server_count;
 
-void server(char*, enum SERVER_TYPE, int, const char*(*)(char*));
+void init_server(char*, enum SERVER_TYPE, int, const char*(*)(char*));
 void client(int);
 
 packet_t *create_data_pack(const char*);

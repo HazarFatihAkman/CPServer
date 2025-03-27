@@ -280,46 +280,106 @@ static http_request_t get_request_type(char *raw_data) {
     return response;
 }
 
-http_content_t *get_http_content(char *raw_data) {
+static void tkncpy(char *dst, char *token, char *prefix) {
+    char *pos = strstr(token, prefix);
+    size_t prefix_len = strlen(prefix);
+    char *temp = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+
+    memcpy(temp, token, strlen(token) * sizeof(char));
+    memmove(temp, pos + prefix_len, strlen(pos + prefix_len) + 1);
+    strcpy(dst, temp);
+    free(temp);
+    temp = NULL;
+    pos = NULL;
+    prefix_len = 0;
+}
+
+http_content_t *http_content(char *raw_data, char **keys, int keys_count) {
     http_content_t *http_content = (http_content_t*)default_allocator.allocate(sizeof(http_content_t));
     char *token = strtok(raw_data, "\n");
-    char *pos, *temp;
+    char *pos;
+    size_t prefix_len;
+
+    http_content->custom_data = (char**)default_allocator.allocate(keys_count * sizeof(char));
+    bool content_len_filled = false;
+    int content_index = 0;
 
     while (token != NULL && token[0] != '\0') {
-        printf("%s\n", token);
-        if (strstr(token, "HTTP")) {
-            for_loop(i, 9) {
-                if (strstr(token, http_request_name((http_request_t)i))) {
-                    http_content->request_type = (http_request_t)i;
-                }
-            }
-        }
-        else if (strstr(token, "Content-Type: ")) {
-            for_loop(i, 27) {
-                if (strstr(token, content_type_name((content_type_t)i))) {
-                    http_content->content_type = (content_type_t)i;
-                }
-            }
-        }
-        // else if (strstr(token, "Content-Length: ")) {
-        //     pos = strstr(token, "Content-Length: ");
-        //     size_t prefix_len = strlen("Content-Length: ");
-            
-        //     strcpy(temp, token);
-        //     memmove(temp, pos + prefix_len, strlen(pos + prefix_len) + 1);
-        //     http_content->content_len = atoi(temp);
+        if (content_len_filled && strcmp(token, "\r") != 0) {
+            remove_char((char)13, token);
+            remove_char((char)10, token);
 
-        //     pos = NULL;
-        //     temp = NULL;
-        // }
-        // else if (strstr(token, "Connection: ")) {
-        //     pos = strstr(token, "Connection: ");
-        //     size_t prefix_len = strlen("Connection: ");
-        //     memcpy(temp, token, strlen(token) * sizeof(char));
-        //     memmove(temp, pos + prefix_len, strlen(pos + prefix_len) + 1);
-        //     http_content->connection_type = connection_type_from_str(temp);
-        // }
+            if (token[0] != '\0') {
+                for_loop(i, strlen(token)) {
+                    http_content->content[content_index++] = token[i];
+                }
+            }
+        }
+        else {
+            if (strstr(token, "HTTP")) {
+                for_loop(i, 9) {
+                    if (strstr(token, http_request_name((http_request_t)i))) {
+                        http_content->request_type = (http_request_t)i;
+                        break;
+                    }
+                }
+            }
+            else if (strstr(token, "Connection: ")) {
+                for_loop(i, 4) {
+                    if (strstr(token, connection_type_name((connection_type_t)i))) {
+                        http_content->connection_type = (connection_type_t)i;
+                        break;
+                    }
+                }
+            }
+            else if (strstr(token, "Content-Type: ")) {
+                for_loop(i, 27) {
+                    if (strstr(token, content_type_name((content_type_t)i))) {
+                        http_content->content_type = (content_type_t)i;
+                        break;
+                    }
+                }
+            }
+            else if (strstr(token, "Content-Length: ")) {
+                char *temp = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                tkncpy(temp, token, "Content-Length: ");
+                int len = atoi(temp);
+                http_content->content_len = len;
+                free(temp);
+                temp = NULL;
+                content_len_filled = true;
+                http_content->content = (char*)default_allocator.allocate(len * sizeof(char));
+                len = 0;
+            }
+            else if(strstr(token, "User-Agent: ")) {
+                http_content->user_agent = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                tkncpy(http_content->user_agent, token, "User-Agent: ");
+            }
+            else if (strstr(token, "Accept: ")) {
+                http_content->accept = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                tkncpy(http_content->accept, token, "Accept: ");
+            }
+            else if (strstr(token, "Host: ")) {
+                http_content->host = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                tkncpy(http_content->host, token, "Host: ");
+            }
+            else if (strstr(token, "Accept-Encoding: ")) {
+                http_content->accept_encoding = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                tkncpy(http_content->accept_encoding, token, "Accept-Encoding: ");
+            }
+            else {
+                for_loop(i, keys_count) {
+                    if (strstr(token, keys[i])) {
+                        http_content->custom_data[i] = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                        tkncpy(http_content->custom_data[i], token, keys[i]);
+                    }
+                }
+            }
+        }
+
         token = strtok(NULL, "\n");
     }
+
+    http_content->content[content_index] = '\0';
     return http_content;
 }

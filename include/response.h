@@ -2,6 +2,7 @@
 #define RESPONSE_H
 
 #include "utilities.h"
+#include <stdbool.h>
 
 typedef enum http_code {
     CONTINUE = 100,
@@ -126,17 +127,20 @@ typedef struct http_content {
     char *accept;
     char *host;
     char *accept_encoding;
+
+    char **custom_data; // Like tokens, api keys...
 } http_content_t;
 
 #define RESPONSE "HTTP/1.1 %s\r\n"\
                  "Content-Type: %s\r\n"\
-                 "Content-Length: %d\r\n"\
                  "Connection: keep-alive\r\n"\
+                 "Content-Length: %d\r\n"\
                  "\r\n"\
                  "%s"
 
 const char *create_response(http_code_t, content_type_t, char*);
-http_content_t *get_http_content(char*);
+http_content_t *http_content(char*, char**, int);
+
 const char* http_code_name(http_code_t);
 const char* content_type_name(content_type_t);
 content_type_t content_type_from_str(const char*);

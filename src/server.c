@@ -63,7 +63,7 @@ int init_network() {
     #endif
 }
 
-void server(char *name, enum SERVER_TYPE type, int max_connected_clients, const char*(*handler)(char*)) {
+void init_server(char *name, enum SERVER_TYPE type, int max_connected_clients, const char*(*handler)(char*)) {
     if (init_network() != 1) {
         exit(EXIT_FAILURE);
     }
