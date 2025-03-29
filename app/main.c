@@ -1,29 +1,29 @@
 #include "../include/server.h"
 
 const char* handle_get(http_content_t *content) {
-    return create_response(OK, APPLICATION_JSON, content->content);
+    return create_response(OK, APPLICATION_JSON, "Hello from UDP server\n");
 }
 
 const char* handle_post(http_content_t *content) {
-    return create_response(CREATED, APPLICATION_JSON, content->content);
+    return create_response(CREATED, APPLICATION_JSON, "Hello from UDP server\n");
 }
 
 const char* handler(char *received_data) {
-    char *keys[1] = {"Postman-Token: "};
-    http_content_t *content = http_content(received_data, keys, 1);
-    if (content->request_type == GET) {
-        return handle_get(content);
-    }
-    else if (content->request_type == POST) {
-        return handle_post(content);
-    }
-    return NULL;
+    // char *keys[1] = {"Postman-Token: "};
+    // http_content_t *content = http_content(received_data, keys, 1);
+    // if (content->request_type == GET) {
+    //     return handle_get(content);
+    // }
+    // else if (content->request_type == POST) {
+    //     return handle_post(content);
+    // }
+    return "{\"test\":\"hello from udp server\"}";;
 }
 
 int main(void) {
-    init_server("Server - 1", TCP, 5, handler);
+    init_server("Server - 1", UDP, 5, handler);
     //game_session -> approved -> new thread udp server(auto port) 
-    init_server("Server - 2", UDP, 10, NULL);
+    // init_server("Server - 2", UDP, 10, NULL);
     // server("Server - 3", TCP, 12, NULL);
 
     // while (1) {

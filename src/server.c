@@ -148,9 +148,9 @@ void init_server(char *name, enum SERVER_TYPE type, int max_connected_clients, c
     server->port = ntohs(server_addr.sin_port);
 
     if (server->type == TCP) {
-         attempts = 0;
+        attempts = 0;
 
-         while ((listen(server->fd, server->config->max_connected_clients) < 0) && attempts < MAX_ATTEMPTS) {
+        while ((listen(server->fd, server->config->max_connected_clients) < 0) && attempts < MAX_ATTEMPTS) {
             ++attempts;
             fprintf(stderr, "Listen failed. Retrying... (%zu/%zu)\n", attempts, MAX_ATTEMPTS);
             #if _WIN32
@@ -158,10 +158,11 @@ void init_server(char *name, enum SERVER_TYPE type, int max_connected_clients, c
             #elif __linux__ && __APPLE__
                 // TODO : Linux && MACOS
             #endif
+
             if (attempts == MAX_ATTEMPTS - 1) {
                break;
             }
-         }
+        }
     }
 
     server->ready = true;
@@ -174,14 +175,14 @@ void handle_recv(server_t *server, struct sockaddr_in *server_addr, const char*(
     char buffer[SIZE_1024];
     struct sockaddr_in client_addr;
     SOCKET client_socket;
-    int add_len = sizeof(client_addr);
+    int client_addr_len = sizeof(client_addr);
     int attempts = 0, byte_received;
 
     if (server->type == TCP) {
         while (1) {
             #if _WIN32
                 init_network();
-                client_socket = accept(server->fd, (struct sockaddr*)&client_addr, &add_len);
+                client_socket = accept(server->fd, (struct sockaddr*)&client_addr, &client_addr_len);
                 if (client_socket == INVALID_SOCKET) {
                     fprintf(stderr, "Accept failed with error: %d\n", WSAGetLastError());
                     continue;
@@ -215,21 +216,56 @@ void handle_recv(server_t *server, struct sockaddr_in *server_addr, const char*(
     else if (server->type == UDP) {
         while (1) {
             #if _WIN32
-                byte_received = recvfrom(server->fd, buffer, SIZE_1024, 0, (struct sockaddr*)&client_addr, &add_len);
-                if (byte_received == SOCKET_ERROR) {
-                    fprintf(stderr, "ERROR RECEIVING DATA %ld\n", WSAGetLastError());
+                // Receive a message from the client
+                byte_received = recvfrom(server->fd, (char *)buffer, SIZE_1024, 0, (struct sockaddr *)&client_addr, &client_addr_len);
+                if (byte_received < 0) {
+                    perror("Failed to receive message");
                     continue;
                 }
 
+                // Null-terminate the received message
                 buffer[byte_received] = '\0';
+                printf("Received message: %s\n", buffer);
 
-                fprintf(stderr, "%s\n", buffer);
-                const char *response = "Message received";
-                sendto(server->fd, response, strlen(response), 0, (struct sockaddr*)&client_addr, add_len);
+                // Send a response to the client
+                const char *response = handler(buffer);
+                sendto(server->fd, (const char *)response, strlen(response), 0, (const struct sockaddr *)&client_addr, client_addr_len);
+                printf("Response sent to client\n");
             #elif __linux__ || __APPLE__
-                // TODO : Linux & MACOS
+            
             #endif
         }
+    
+        // while (1) {
+        //     #if _WIN32
+        //         byte_received = recvfrom(server->fd, buffer, SIZE_1024, 0, (struct sockaddr*)&client_addr, &add_len);
+        //         if (byte_received == SOCKET_ERROR) {
+        //             fprintf(stderr, "ERROR RECEIVING DATA %ld\n", WSAGetLastError());
+        //             continue;
+        //         }
+
+        //         buffer[byte_received] = '\0';
+        //         if (byte_received > 0){ //If there are data
+        //             //Print information for received data
+        //             printf("Server: Total Bytes received: %d\n", byte_received);
+        //             printf("Server: The data is: %s\n", buffer);
+        //             printf("\n");
+        //         }
+        //         else if (byte_received <= 0){ //If the buffer is empty
+        //             //Print error message
+        //             printf("Server: Connection closed with error code: %ld\n", WSAGetLastError());
+        //         }
+        //         else{ //If error
+        //             //Print error message
+        //             printf("Server: recvfrom() failed with error code: %d\n", WSAGetLastError());
+        //         }
+
+        //         const char *response = handler(buffer);
+        //         sendto(client_socket, "response", strlen("response"), 0, (struct sockaddr *)&client_addr, add_len);
+        //     #elif __linux__ || __APPLE__
+        //         // TODO : Linux & MACOS
+        //     #endif
+        // }
     }
 
 }
