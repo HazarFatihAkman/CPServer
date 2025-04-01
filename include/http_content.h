@@ -134,11 +134,20 @@ typedef struct http_content {
 #define RESPONSE "HTTP/1.1 %s\r\n"\
                  "Content-Type: %s\r\n"\
                  "Connection: keep-alive\r\n"\
-                 "Content-Length: %d\r\n"\
+                 "Content-Length: %lu\r\n"\
                  "\r\n"\
                  "%s"
 
+#define UNSUPPORTED_RESPONSE "HTTP/1.1 405 Method Not Allowed\r\n"\
+                             "Content-Type: text/plain\r\n"\
+                             "Allow: %s\r\n"\
+                             "Content-Length: %d\r\n"\
+                             "\r\n"\
+                             "405 Method Not Allowed\nAllowed Methods : %s"
+
 const char *create_response(http_code_t, content_type_t, char*);
+const char *create_unsupported_response(char*);
+
 http_content_t *http_content(char*, char**, int);
 
 const char* http_code_name(http_code_t);

@@ -1,23 +1,44 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "response.h"
+#include "http_content.h"
 
 #if _WIN32
     #include <WinSock2.h>
+    #define SOCKET_TYPE SOCKET
+    #define INVALID_SOCK INVALID_SOCKET
+    #define SOCK_ERROR SOCKET_ERROR
+    #define ADDR_TYPE int
+    #define SHUTDOWN_SEND SD_SEND
+    #define CLOSE_SOCK closesocket
     #pragma comment(lib, "ws2_32.lib")
 #elif __linux__ || __APPLE__
-    //TODO : Linux & MACOS
+    #include <unistd.h>
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <errno.h>
+    #define SOCKET_TYPE int
+    #define INVALID_SOCK -1
+    #define SOCK_ERROR -1
+    #define ADDR_TYPE socklen_t
+    #define SHUTDOWN_SEND SHUT_WR
+    #define CLOSE_SOCK close
 #else
     #error "Unsupported platform"
 #endif
 
-typedef enum SERVER_TYPE {
+typedef enum server_enum_type {
     TCP,
     UDP
-};
+} server_type;
 
-typedef struct server_client server_client_t;
+typedef struct socket_info {
+    // port to listen. if 0, grab any available port.
+    int port;
+    SOCKET_TYPE fd;
+    struct sockaddr_in addr;
+    ADDR_TYPE addr_len;
+} socket_info_t;
 
 typedef struct server_config {
     int max_connected_clients;
@@ -25,48 +46,27 @@ typedef struct server_config {
 } server_config_t;
 
 typedef struct server {
-    // port to listen. if 0, grab any available port.
-    int port;
-
-    // server socket
-    #if _WIN32
-        SOCKET fd;
-    #elif __linux__ || __APPLE__
-        int fd;
-    #else
-        #error "Unsupported platform"
-    #endif
-
-    enum SERVER_TYPE type;
-
     int pid;
-
-    bool ready;
-
-    #if _WIN32
-        HANDLE lock;
-    #else
-        // TODO : LINUX & MACOS
-    #endif
-
+    server_type type;
+    socket_info_t *socket;
     server_config_t *config;
-} server_t;
+    bool ready;
+    // TODO : IDK HOW TO USE LOCK MECHANISM EXACTLY.
+    // LOCK IS 
 
-typedef struct packet {    
-    int type; // 0 : Data, 1 : Control
-    union {
-        bool control;
-        const char *data;
-    } payload;
-} packet_t;
+    // #if _WIN32
+    //     HANDLE lock;
+    // #else
+    //     // TODO : LINUX & MACOS
+    // #endif
+
+} server_t;
 
 extern server_t **active_servers;
 extern int server_count;
 
-void init_server(char*, enum SERVER_TYPE, int, const char*(*)(char*));
+void init_server(char*, server_type, int, const char*(*)(char*));
 void client(int);
 
-packet_t *create_data_pack(const char*);
-packet_t *create_control_pack(bool);
-char *server_type(enum SERVER_TYPE);
+char *server_type_name(server_type);
 #endif

@@ -1,4 +1,4 @@
-#include "../include/response.h"
+#include "../include/http_content.h"
 
 const char* http_code_name(http_code_t http_code) {
     switch (http_code) {
@@ -256,6 +256,12 @@ connection_type_t connection_type_from_str(const char* str) {
 const char *create_response(http_code_t http_code, content_type_t content_type, char *content) {
     char *response = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
     sprintf(response, RESPONSE, http_code_name(http_code), content_type_name(content_type), strlen(content), content);
+    return response;
+}
+
+const char *create_unsupported_response(char *allowed_methods) {
+    char *response = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+    sprintf(response, UNSUPPORTED_RESPONSE, allowed_methods, (int)(strlen(allowed_methods) + 42), allowed_methods);
     return response;
 }
 
