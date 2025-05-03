@@ -42,14 +42,14 @@ typedef struct socket_info {
 
 typedef struct server_config {
     int max_connected_clients;
-    char *name;
+    str name;
 } server_config_t;
 
 typedef struct server {
     int pid;
     server_type type;
-    socket_info_t *socket;
-    server_config_t *config;
+    socket_info_t* socket;
+    server_config_t* config;
     bool ready;
     // TODO : IDK HOW TO USE LOCK MECHANISM EXACTLY.
     // LOCK IS 
@@ -62,11 +62,11 @@ typedef struct server {
 
 } server_t;
 
-extern server_t **active_servers;
+extern server_t** active_servers;
 extern int server_count;
 
-void init_server(char* name, server_type type, int max_connected_clients, const char*(*handler)(char*));
+void init_server(str name, server_type type, int max_connected_clients, c_str(*handler)(str));
 void client(int port);
 
-char *server_type_name(server_type type);
+str server_type_name(server_type type);
 #endif

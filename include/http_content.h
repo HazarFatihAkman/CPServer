@@ -1,7 +1,7 @@
 #ifndef CPSERVER_RESPONSE_H
 #define CPSERVER_RESPONSE_H
 
-#include "utilities.h"
+#include "util.h"
 #include <stdbool.h>
 
 typedef enum http_code {
@@ -121,14 +121,14 @@ typedef struct http_content {
     connection_type_t connection_type;
 
     int content_len;
-    char *content;
+    str content;
 
-    char *user_agent;
-    char *accept;
-    char *host;
-    char *accept_encoding;
+    str user_agent;
+    str accept;
+    str host;
+    str accept_encoding;
 
-    char **custom_data; // Like tokens, api keys...
+    str* custom_data; // Like tokens, api keys...
 } http_content_t;
 
 #define RESPONSE "HTTP/1.1 %s\r\n"\
@@ -145,17 +145,17 @@ typedef struct http_content {
                              "\r\n"\
                              "405 Method Not Allowed\nAllowed Methods : %s"
 
-const char *create_response(http_code_t http_code, content_type_t content_type, char *content);
-const char *create_unsupported_response(char *allowed_methods);
+c_str create_response(http_code_t http_code, content_type_t content_type, str content);
+c_str create_unsupported_response(str allowed_methods);
 
-http_content_t *http_content(char *raw_data, char **keys, int keys_count);
+http_content_t* http_content(str raw_data, str* keys, int keys_count);
 
-const char* http_code_name(http_code_t http_code);
-const char* content_type_name(content_type_t content_type);
-content_type_t content_type_from_str(const char *str);
-const char* http_request_name(http_request_t http_request);
-http_request_t http_request_from_str(char *str);
-const char* connection_type_name(connection_type_t conn_type);
-connection_type_t connection_type_from_str(const char* str);
+c_str http_code_name(http_code_t http_code);
+c_str content_type_name(content_type_t content_type);
+content_type_t content_type_from_str(c_str str);
+c_str http_request_name(http_request_t http_request);
+http_request_t http_request_from_str(c_str str);
+c_str connection_type_name(connection_type_t conn_type);
+connection_type_t connection_type_from_str(c_str str);
 
 #endif

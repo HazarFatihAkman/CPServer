@@ -1,6 +1,6 @@
 #include "../include/http_content.h"
 
-const char* http_code_name(http_code_t http_code) {
+c_str http_code_name(http_code_t http_code) {
     switch (http_code) {
         case CONTINUE: return "100 CONTINUE";
         case SWITCHING_PROTOCOLS: return "101 SWITCHING_PROTOCOLS";
@@ -64,7 +64,7 @@ const char* http_code_name(http_code_t http_code) {
     }
 }
 
-const char* content_type_name(content_type_t content_type) {
+c_str content_type_name(content_type_t content_type) {
     switch (content_type) {
         case TEXT_HTML: return "text/html";
         case TEXT_PLAIN: return "text/plain";
@@ -97,7 +97,7 @@ const char* content_type_name(content_type_t content_type) {
     }
 }
 
-content_type_t content_type_from_str(const char *str) {
+content_type_t content_type_from_str(c_str str) {
     if (strcmp(str, "text/html") == 0) {
         return TEXT_HTML;
     }
@@ -181,9 +181,8 @@ content_type_t content_type_from_str(const char *str) {
     }
 }
 
-const char* http_request_name(http_request_t http_request) {
-    switch (http_request)
-    {
+c_str http_request_name(http_request_t http_request) {
+    switch (http_request) {
         case GET: return "GET";
         case HEAD: return "HEAD";
         case OPTIONS: return "OPTIONS";
@@ -197,7 +196,7 @@ const char* http_request_name(http_request_t http_request) {
     }
 }
 
-http_request_t http_request_from_str(char *str) {
+http_request_t http_request_from_str(c_str str) {
     if (strcmp(str, "GET") == 0) {
         return GET;
     }
@@ -228,7 +227,7 @@ http_request_t http_request_from_str(char *str) {
     return -1;
 }
 
-const char* connection_type_name(connection_type_t conn_type) {
+c_str connection_type_name(connection_type_t conn_type) {
     switch (conn_type) {
         case CLOSE: return "close";
         case KEEP_ALIVE: return "keep-alive";
@@ -238,7 +237,7 @@ const char* connection_type_name(connection_type_t conn_type) {
     }
 }
 
-connection_type_t connection_type_from_str(const char* str) {
+connection_type_t connection_type_from_str(c_str str) {
     if (strcmp(str, "close") == 0) {
         return CLOSE;
     }
@@ -253,23 +252,23 @@ connection_type_t connection_type_from_str(const char* str) {
     }
 }
 
-const char *create_response(http_code_t http_code, content_type_t content_type, char *content) {
-    char *response = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+c_str create_response(http_code_t http_code, content_type_t content_type, str content) {
+    str response = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
     sprintf(response, RESPONSE, http_code_name(http_code), content_type_name(content_type), strlen(content), content);
     return response;
 }
 
-const char *create_unsupported_response(char *allowed_methods) {
-    char *response = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+c_str create_unsupported_response(str allowed_methods) {
+    str response = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
     sprintf(response, UNSUPPORTED_RESPONSE, allowed_methods, (int)(strlen(allowed_methods) + 42), allowed_methods);
     return response;
 }
 
-static http_request_t get_request_type(char *raw_data) {
-    char *temp = (char*)default_allocator.allocate(strlen(raw_data) * sizeof(char));
+static http_request_t get_request_type(str raw_data) {
+    str temp = (str)default_allocator.allocate(strlen(raw_data) * sizeof(char));
     strcpy(temp, raw_data);
 
-    char *token = strtok(temp, " ");
+    str token = strtok(temp, " ");
     http_request_t response = -1;
     while (token != NULL && token[0] != '\0') {
         for_loop(i, 9) {
@@ -286,10 +285,10 @@ static http_request_t get_request_type(char *raw_data) {
     return response;
 }
 
-static void tkncpy(char *dst, char *token, char *prefix) {
-    char *pos = strstr(token, prefix);
+static void tkncpy(str dst, str token, str prefix) {
+    str pos = strstr(token, prefix);
     size_t prefix_len = strlen(prefix);
-    char *temp = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+    str temp = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
 
     memcpy(temp, token, strlen(token) * sizeof(char));
     memmove(temp, pos + prefix_len, strlen(pos + prefix_len) + 1);
@@ -300,13 +299,13 @@ static void tkncpy(char *dst, char *token, char *prefix) {
     prefix_len = 0;
 }
 
-http_content_t *http_content(char *raw_data, char **keys, int keys_count) {
-    http_content_t *http_content = (http_content_t*)default_allocator.allocate(sizeof(http_content_t));
-    char *token = strtok(raw_data, "\n");
-    char *pos;
+http_content_t* http_content(str raw_data, str* keys, int keys_count) {
+    http_content_t* http_content = (http_content_t*)default_allocator.allocate(sizeof(http_content_t));
+    str token = strtok(raw_data, "\n");
+    str pos;
     size_t prefix_len;
 
-    http_content->custom_data = (char**)default_allocator.allocate(keys_count * sizeof(char));
+    http_content->custom_data = (str*)default_allocator.allocate(keys_count * sizeof(char));
     bool content_len_filled = false;
     int content_index = 0;
 
@@ -347,36 +346,36 @@ http_content_t *http_content(char *raw_data, char **keys, int keys_count) {
                 }
             }
             else if (strstr(token, "Content-Length: ")) {
-                char *temp = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                str temp = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
                 tkncpy(temp, token, "Content-Length: ");
                 int len = atoi(temp);
                 http_content->content_len = len;
                 free(temp);
                 temp = NULL;
                 content_len_filled = true;
-                http_content->content = (char*)default_allocator.allocate(len * sizeof(char));
+                http_content->content = (str)default_allocator.allocate(len * sizeof(char));
                 len = 0;
             }
             else if(strstr(token, "User-Agent: ")) {
-                http_content->user_agent = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                http_content->user_agent = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
                 tkncpy(http_content->user_agent, token, "User-Agent: ");
             }
             else if (strstr(token, "Accept: ")) {
-                http_content->accept = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                http_content->accept = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
                 tkncpy(http_content->accept, token, "Accept: ");
             }
             else if (strstr(token, "Host: ")) {
-                http_content->host = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                http_content->host = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
                 tkncpy(http_content->host, token, "Host: ");
             }
             else if (strstr(token, "Accept-Encoding: ")) {
-                http_content->accept_encoding = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                http_content->accept_encoding = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
                 tkncpy(http_content->accept_encoding, token, "Accept-Encoding: ");
             }
             else {
                 for_loop(i, keys_count) {
                     if (strstr(token, keys[i])) {
-                        http_content->custom_data[i] = (char*)default_allocator.allocate(SIZE_1024 * sizeof(char));
+                        http_content->custom_data[i] = (str)default_allocator.allocate(SIZE_1024 * sizeof(char));
                         tkncpy(http_content->custom_data[i], token, keys[i]);
                     }
                 }

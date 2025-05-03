@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
 
     // Send "ping" message
     if (sendto(sockfd, message, strlen(message), 0, 
-               (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+               (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         perror("Send failed");
         close(sockfd);
         return EXIT_FAILURE;
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
     // Receive response (if any)
     socklen_t addr_len = sizeof(server_addr);
     ssize_t recv_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, 
-                                (struct sockaddr *)&server_addr, &addr_len);
+                                (struct sockaddr*)&server_addr, &addr_len);
     if (recv_len > 0) {
         buffer[recv_len] = '\0';
         printf("Received: %s\n", buffer);

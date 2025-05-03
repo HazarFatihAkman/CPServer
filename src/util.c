@@ -1,7 +1,7 @@
-#include "../include/utilities.h"
+#include "../include/util.h"
 
-void *default_allocate(size_t size) {
-    void *ptr = NULL;
+void* default_allocate(size_t size) {
+    void* ptr = NULL;
     size_t attempts = 0;
     while (ptr == NULL && attempts < MAX_ATTEMPTS) {
         ptr = malloc(size);
@@ -20,7 +20,7 @@ void *default_allocate(size_t size) {
     return ptr;
 }
 
-void default_deallocate(void *ptr) {
+void default_deallocate(void* ptr) {
     if (ptr) {
         free(ptr);
     }
@@ -28,7 +28,7 @@ void default_deallocate(void *ptr) {
 
 allocator_t default_allocator = { default_allocate, default_deallocate };
 
-void remove_char(char remove,char *str) {
+void remove_char(char remove, str str) {
     int j = 0;
     for_loop(i, strlen(str)) {
         if (str[i] != remove) {

@@ -1,5 +1,5 @@
-#ifndef CPSERVER_UTILITIES_H
-#define CPSERVER_UTILITIES_H
+#ifndef CPSERVER_UTIL_H
+#define CPSERVER_UTIL_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +10,9 @@
 #define SIZE_256 256
 #define SIZE_1024 1024
 
+typedef char* str;
+typedef const char* c_str;
+
 typedef struct allocator {
     void*(*allocate)(size_t size);
     void(*deallocate)(void* ptr);
@@ -17,8 +20,8 @@ typedef struct allocator {
 
 extern allocator_t default_allocator;
 
-void *default_allocate(size_t size);
+void* default_allocate(size_t size);
 void default_deallocate(void* ptr);
-void remove_char(char remove, char* str);
+void remove_char(char remove, str str);
 
 #endif

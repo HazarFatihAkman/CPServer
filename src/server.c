@@ -1,11 +1,11 @@
 #include "../include/server.h"
 
-void handle_recv(server_t *, const char*(*)(char*));
+void handle_recv(server_t*, c_str(*)(str));
 
-server_t **active_servers = NULL;
+server_t** active_servers = NULL;
 int server_count = 0;
 
-char *server_type_name(server_type type) {
+str server_type_name(server_type type) {
     switch (type) {
         case 0:
             return "TCP";
@@ -16,7 +16,7 @@ char *server_type_name(server_type type) {
     }
 }
 
-static void push_server(server_t *server) {
+static void push_server(server_t* server) {
     if (active_servers == NULL && server_count == 0) {
         active_servers = (server_t**)default_allocator.allocate(sizeof(server_t**));
         if (active_servers == NULL) {
@@ -63,13 +63,13 @@ int init_network() {
     #endif
 }
 
-void init_server(char *name, server_type type, int max_connected_clients, const char*(*handler)(char*)) {
+void init_server(str name, server_type type, int max_connected_clients, c_str(*handler)(str)) {
     if (init_network() != 1) {
         exit(EXIT_FAILURE);
     }
 
     int attempts = 0;
-    server_t *server = (server_t*)default_allocator.allocate(sizeof(server_t));
+    server_t* server = (server_t*)default_allocator.allocate(sizeof(server_t));
 
     server->config = (server_config_t*)default_allocator.allocate(sizeof(server_config_t));
     server->socket = (socket_info_t*)default_allocator.allocate(sizeof(socket_info_t));
@@ -108,9 +108,9 @@ void init_server(char *name, server_type type, int max_connected_clients, const 
     memset(&server->socket->addr, 0, sizeof(server->socket->addr));
     server->socket->addr.sin_family = AF_INET;
     server->socket->addr.sin_addr.s_addr = INADDR_ANY;  // Bind to any available interface
-    server->socket->addr.sin_port = htons(0);  // Let the OS choose the port
+    server->socket->addr.sin_port = htons(0);           // Let the OS choose the port
 
-    while (bind(server->socket->fd, (struct sockaddr *)&server->socket->addr, sizeof(server->socket->addr)) < 0 && attempts < MAX_ATTEMPTS) {
+    while (bind(server->socket->fd, (struct sockaddr*)&server->socket->addr, sizeof(server->socket->addr)) < 0 && attempts < MAX_ATTEMPTS) {
         ++attempts;
         fprintf(stderr, "Bind failed. Retrying... (%d/%d)\n", attempts, MAX_ATTEMPTS);
 
@@ -154,9 +154,9 @@ void init_server(char *name, server_type type, int max_connected_clients, const 
     handle_recv(server, handler);
 }
 
-void handle_recv(server_t *server, const char*(*handler)(char*)) {
+void handle_recv(server_t* server, c_str(*handler)(str)) {
     char buffer[SIZE_1024];
-    socket_info_t *client_socket = (socket_info_t*)default_allocator.allocate(sizeof(socket_info_t));
+    socket_info_t* client_socket = (socket_info_t*)default_allocator.allocate(sizeof(socket_info_t));
     client_socket->addr_len = sizeof(client_socket->addr);
     int attempts = 0, byte_received;
     if (server->type == TCP) {
@@ -187,7 +187,7 @@ void handle_recv(server_t *server, const char*(*handler)(char*)) {
                 }
                 else {
                     buffer[byte_received] = '\0';
-                    const char *response = handler(buffer);
+                    c_str response = handler(buffer);
                     int byte_sent = send(client_socket->fd, response, strlen(response), 0);
 
                     CLOSE_SOCK(client_socket->fd);
@@ -204,7 +204,7 @@ void handle_recv(server_t *server, const char*(*handler)(char*)) {
     }
     else if (server->type == UDP) {
         while (1) {
-            byte_received = recvfrom(server->socket->fd, (char *)buffer, SIZE_1024, 0, (struct sockaddr *)&client_socket->addr, &client_socket->addr_len);
+            byte_received = recvfrom(server->socket->fd, (str)buffer, SIZE_1024, 0, (struct sockaddr*)&client_socket->addr, &client_socket->addr_len);
             if (byte_received < 0) {
                 perror("Failed to receive message");
                 continue;
@@ -215,8 +215,8 @@ void handle_recv(server_t *server, const char*(*handler)(char*)) {
             printf("Received message: %s\n", buffer);
 
                 // Send a response to the client
-            const char *response = handler(buffer);
-            sendto(server->socket->fd, (const char *)response, strlen(response), 0, (const struct sockaddr *)&client_socket->addr, client_socket->addr_len);
+            c_str response = handler(buffer);
+            sendto(server->socket->fd, (c_str)response, strlen(response), 0, (const struct sockaddr*)&client_socket->addr, client_socket->addr_len);
             printf("Response sent to client\n");
         }
     }

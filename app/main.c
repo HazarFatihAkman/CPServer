@@ -1,20 +1,20 @@
 #include "../include/server.h"
 
-const char* handle_get(http_content_t *content) {
+c_str handle_get(http_content_t* content) {
     return create_response(OK, APPLICATION_JSON, "{\n\"response\":\"Hello from TCP server\"\n}");
 }
 
-const char* handle_post(http_content_t *content) {
+c_str handle_post(http_content_t* content) {
     return create_response(CREATED, APPLICATION_JSON, "{\n\"response\":\"Hello from TCP server\"\n}");
 }
 
-const char* handler_udp(char *received_data) {
+c_str handler_udp(str received_data) {
     return "{\n\"response\":\"Hello from UDP server\"\n}";
 }
 
-const char* handler_tcp(char *received_data) {
-    char *keys[1] = {"Postman-Token: "};
-    http_content_t *content = http_content(received_data, keys, 1);
+c_str handler_tcp(str received_data) {
+    str keys[1] = {"Postman-Token: "};
+    http_content_t* content = http_content(received_data, keys, 1);
     if (content->request_type == GET) {
         return handle_get(content);
     }
@@ -36,7 +36,7 @@ int main(void) {
     //         printf("%s - %d\n", active_servers[i]->config->name, active_servers[i]->config->max_connected_clients);
     //     }
 
-    //     packet_t *packet = create_data_pack("DATA PACKAGE");
+    //     packet_t* packet = create_data_pack("DATA PACKAGE");
     //     printf("%s\n", packet->payload.data);
     //     Sleep(5000);
     // }
