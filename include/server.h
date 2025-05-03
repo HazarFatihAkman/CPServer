@@ -1,5 +1,5 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef CPSERVER_SERVER_H
+#define CPSERVER_SERVER_H
 
 #include "http_content.h"
 
@@ -65,8 +65,8 @@ typedef struct server {
 extern server_t **active_servers;
 extern int server_count;
 
-void init_server(char*, server_type, int, const char*(*)(char*));
-void client(int);
+void init_server(char* name, server_type type, int max_connected_clients, const char*(*handler)(char*));
+void client(int port);
 
-char *server_type_name(server_type);
+char *server_type_name(server_type type);
 #endif

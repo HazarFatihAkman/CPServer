@@ -1,5 +1,5 @@
-#ifndef RESPONSE_H
-#define RESPONSE_H
+#ifndef CPSERVER_RESPONSE_H
+#define CPSERVER_RESPONSE_H
 
 #include "utilities.h"
 #include <stdbool.h>
@@ -145,17 +145,17 @@ typedef struct http_content {
                              "\r\n"\
                              "405 Method Not Allowed\nAllowed Methods : %s"
 
-const char *create_response(http_code_t, content_type_t, char*);
-const char *create_unsupported_response(char*);
+const char *create_response(http_code_t http_code, content_type_t content_type, char *content);
+const char *create_unsupported_response(char *allowed_methods);
 
-http_content_t *http_content(char*, char**, int);
+http_content_t *http_content(char *raw_data, char **keys, int keys_count);
 
-const char* http_code_name(http_code_t);
-const char* content_type_name(content_type_t);
-content_type_t content_type_from_str(const char*);
-const char* http_request_name(http_request_t);
-http_request_t http_request_from_str(char*);
-const char* connection_type_name(connection_type_t);
-connection_type_t connection_type_from_str(const char*);
+const char* http_code_name(http_code_t http_code);
+const char* content_type_name(content_type_t content_type);
+content_type_t content_type_from_str(const char *str);
+const char* http_request_name(http_request_t http_request);
+http_request_t http_request_from_str(char *str);
+const char* connection_type_name(connection_type_t conn_type);
+connection_type_t connection_type_from_str(const char* str);
 
 #endif
