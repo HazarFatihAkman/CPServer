@@ -1,12 +1,4 @@
-# This open-source library is canceled.
-
-[Kurt](https://github.com/HazarFatihAkman/Kurt) is new and more powerfull open-source server framework project.
-
-I am writing documents and the creating the architecture right now.
-
-When I am done, I will start to code. It will support Linux/MacOS, not Windows.
-
-# CPServer
+# CPServer open-source framework canceled.
 
 ### TODO
 - [x] FIX response message
